@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+/* Use .dark class on <html> for dark mode instead of prefers-color-scheme.
+   .dark & generates a two-class selector (specificity 0,2,0) so it always
+   beats base utilities like bg-white (0,1,0). */
+@variant dark (.dark &);
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
