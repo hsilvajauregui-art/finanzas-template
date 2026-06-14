@@ -20,8 +20,11 @@ export default defineConfig({
         background_color: '#f9fafb',
         display: 'standalone',
         orientation: 'portrait-primary',
+        dir: 'ltr',
+        lang: 'es',
         scope: '/',
         start_url: '/',
+        prefer_related_applications: false,
         categories: ['finance', 'productivity'],
         icons: [
           {
