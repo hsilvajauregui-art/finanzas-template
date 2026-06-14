@@ -12,6 +12,7 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
+        id: '/',
         name: appConfig.app.name,
         short_name: appConfig.app.shortName,
         description: appConfig.app.description,
