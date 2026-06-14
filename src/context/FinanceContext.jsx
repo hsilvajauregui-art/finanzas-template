@@ -209,12 +209,43 @@ export const emptyState = {
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'ADD_TRANSACTION':
-      return { ...state, transactions: [...state.transactions, { ...action.payload, id: Date.now() }] }
-    case 'UPDATE_TRANSACTION':
-      return { ...state, transactions: state.transactions.map(t => t.id === action.payload.id ? action.payload : t) }
-    case 'DELETE_TRANSACTION':
-      return { ...state, transactions: state.transactions.filter(t => t.id !== action.payload) }
+    case 'ADD_TRANSACTION': {
+      const t = { ...action.payload, id: Date.now() }
+      const delta = t.type === 'income' ? t.amount : -t.amount
+      return {
+        ...state,
+        accounts: state.accounts.map(a =>
+          a.id === t.account ? { ...a, balance: a.balance + delta } : a
+        ),
+        transactions: [...state.transactions, t],
+      }
+    }
+    case 'UPDATE_TRANSACTION': {
+      const newT = action.payload
+      const oldT = state.transactions.find(t => t.id === newT.id)
+      return {
+        ...state,
+        accounts: state.accounts.map(a => {
+          let bal = a.balance
+          if (oldT && a.id === oldT.account) bal -= oldT.type === 'income' ? oldT.amount : -oldT.amount
+          if (a.id === newT.account) bal += newT.type === 'income' ? newT.amount : -newT.amount
+          return bal !== a.balance ? { ...a, balance: bal } : a
+        }),
+        transactions: state.transactions.map(t => t.id === newT.id ? newT : t),
+      }
+    }
+    case 'DELETE_TRANSACTION': {
+      const t = state.transactions.find(tx => tx.id === action.payload)
+      return {
+        ...state,
+        accounts: state.accounts.map(a => {
+          if (!t || a.id !== t.account) return a
+          const delta = t.type === 'income' ? -t.amount : t.amount
+          return { ...a, balance: a.balance + delta }
+        }),
+        transactions: state.transactions.filter(tx => tx.id !== action.payload),
+      }
+    }
     case 'ADD_ACCOUNT':
       return { ...state, accounts: [...state.accounts, { ...action.payload, id: Date.now() }] }
     case 'UPDATE_ACCOUNT':
