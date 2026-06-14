@@ -65,6 +65,33 @@ export function LicenseProvider({ children }) {
 
   const isPro = !!license?.activated
 
+  // Permite activar Pro manualmente visitando una URL con
+  // ?finzenpro=KEY (uso personal del propietario de la app, sin pasar
+  // por Lemon Squeezy ni Google Play). Limpia el parámetro de la URL
+  // después de activarlo para que no quede visible ni se comparta
+  // accidentalmente al copiar el link.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const unlockKey = params.get('finzenpro')
+    if (!unlockKey) return
+
+    if (unlockKey === 'hsj-2026' && !isPro) {
+      const record = {
+        source: 'manual',
+        activated: true,
+        activatedAt: new Date().toISOString(),
+      }
+      saveLicense(record)
+      setLicense(record)
+    }
+
+    params.delete('finzenpro')
+    const newSearch = params.toString()
+    const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : '') + window.location.hash
+    window.history.replaceState({}, '', newUrl)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Al cargar dentro de la app de Android (TWA), revisa si el usuario
   // ya tiene "Finzen Pro" comprado vía Google Play y, de ser así,
   // activa Pro automáticamente (cubre reinstalaciones, nuevos
