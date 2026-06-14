@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { Download, Upload, RotateCcw, FileJson, FileText, CheckCircle, XCircle, AlertTriangle, Smartphone, Info } from 'lucide-react'
+import { Download, Upload, RotateCcw, FileJson, FileText, CheckCircle, XCircle, AlertTriangle, Smartphone, Info, Crown, KeyRound, ExternalLink, ShieldCheck } from 'lucide-react'
 import { useFinance } from '../context/FinanceContext'
 import { emptyState } from '../context/FinanceContext'
 import { useAppearance } from '../context/AppearanceContext'
+import { useLicense } from '../context/LicenseContext'
+import config from '../config'
+import UpgradeLock from '../components/UpgradeLock'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -113,12 +116,47 @@ function ActionRow({ icon: Icon, label, description, onClick, variant = 'default
 export default function Settings() {
   const { state, dispatch } = useFinance()
   const { fmt } = useAppearance()
+  const {
+    isPro,
+    license,
+    status: licenseStatus,
+    error: licenseError,
+    activate,
+    deactivate,
+    clearError,
+    playBillingAvailable,
+    purchasePro,
+  } = useLicense()
   const fileInputRef = useRef(null)
 
   const [importFile, setImportFile] = useState(null)
   const [importStatus, setImportStatus] = useState(null)
   const [resetConfirm, setResetConfirm] = useState(false)
   const [isStandalone, setIsStandalone] = useState(false)
+  const [licenseKeyInput, setLicenseKeyInput] = useState('')
+  const [activateSuccess, setActivateSuccess] = useState(false)
+
+  async function handleActivate() {
+    setActivateSuccess(false)
+    const ok = await activate(licenseKeyInput)
+    if (ok) {
+      setActivateSuccess(true)
+      setLicenseKeyInput('')
+    }
+  }
+
+  async function handlePurchasePro() {
+    setActivateSuccess(false)
+    const ok = await purchasePro()
+    if (ok) {
+      setActivateSuccess(true)
+    }
+  }
+
+  function handleDeactivate() {
+    deactivate()
+    setActivateSuccess(false)
+  }
 
   useEffect(() => {
     setIsStandalone(window.matchMedia('(display-mode: standalone)').matches)
@@ -177,6 +215,108 @@ export default function Settings() {
         <p className="text-sm text-gray-400 mt-0.5">Exporta, importa o restablece tu información financiera</p>
       </div>
 
+      {/* Plan / Licencia */}
+      <SectionCard
+        title="Plan"
+        description={isPro ? 'Tienes acceso completo a todas las funciones' : 'Estás usando el plan Free con funciones limitadas'}
+      >
+        <div className="flex items-center gap-4 mb-4">
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+            isPro
+              ? 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
+          }`}>
+            {isPro ? <Crown size={20} strokeWidth={2} /> : <ShieldCheck size={20} strokeWidth={1.75} />}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              Plan {isPro ? 'Pro' : 'Free'}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {isPro
+                ? 'Cuentas ilimitadas, historial completo, Patrimonio, Deudas, Análisis y exportación de datos.'
+                : `Hasta ${config.licensing.freeAccountLimit} cuentas, últimos ${config.licensing.freeHistoryDays} días de historial y Dashboard básico.`}
+            </p>
+          </div>
+        </div>
+
+        {isPro ? (
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-xs text-gray-400">
+              {license?.source === 'play'
+                ? 'Compra verificada con Google Play'
+                : `Licencia activa${license?.licenseKey ? ` · ${'•'.repeat(8)}${license.licenseKey.slice(-4)}` : ''}`}
+            </p>
+            {license?.source !== 'play' && (
+              <button
+                onClick={handleDeactivate}
+                className="px-4 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                Desactivar licencia
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activateSuccess && (
+              <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                <CheckCircle size={16} className="text-green-600 dark:text-green-400 shrink-0" />
+                <p className="text-sm text-green-700 dark:text-green-300 font-medium">Licencia activada — ahora tienes Pro</p>
+              </div>
+            )}
+            {licenseError && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
+                <XCircle size={16} className="text-red-500 shrink-0" />
+                <p className="text-sm text-red-700 dark:text-red-300">{licenseError}</p>
+              </div>
+            )}
+
+            {playBillingAvailable ? (
+              <button
+                onClick={handlePurchasePro}
+                disabled={licenseStatus === 'loading'}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white text-sm font-medium transition-colors disabled:cursor-not-allowed"
+              >
+                <Crown size={14} strokeWidth={2} />
+                {licenseStatus === 'loading' ? 'Procesando…' : 'Comprar Finzen Pro'}
+              </button>
+            ) : (
+              <>
+                <div className="flex gap-2 flex-wrap">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <KeyRound size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" strokeWidth={1.75} />
+                    <input
+                      type="text"
+                      value={licenseKeyInput}
+                      onChange={e => { setLicenseKeyInput(e.target.value); clearError() }}
+                      placeholder="Código de licencia"
+                      className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <button
+                    onClick={handleActivate}
+                    disabled={licenseStatus === 'loading' || !licenseKeyInput.trim()}
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white text-sm font-medium transition-colors disabled:cursor-not-allowed"
+                  >
+                    {licenseStatus === 'loading' ? 'Activando…' : 'Activar'}
+                  </button>
+                </div>
+                <a
+                  href={config.licensing.checkoutUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-400 hover:underline"
+                >
+                  <Crown size={14} strokeWidth={2} />
+                  Obtener Finzen Pro
+                  <ExternalLink size={12} strokeWidth={2} />
+                </a>
+              </>
+            )}
+          </div>
+        )}
+      </SectionCard>
+
       {/* Current data summary */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
         <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Datos actuales</p>
@@ -190,6 +330,16 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* Export / Import — Pro only */}
+      {!isPro ? (
+        <SectionCard
+          title="Exportar e importar"
+          description="Respaldos y restauración de datos"
+        >
+          <UpgradeLock feature="data" />
+        </SectionCard>
+      ) : (
+      <>
       {/* Export */}
       <SectionCard
         title="Exportar"
@@ -293,6 +443,8 @@ export default function Settings() {
           Restaurar datos desde archivo
         </button>
       </SectionCard>
+      </>
+      )}
 
       {/* PWA status */}
       <SectionCard

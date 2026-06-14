@@ -46,6 +46,16 @@ const config = {
    * An alert fires when monthly debt payments exceed this % of income.
    */
   maxDebtRatio: 30,
+
+  /**
+   * Plan Free vs Pro (modelo freemium).
+   * Edita `checkoutUrl` con el link de compra de Lemon Squeezy.
+   */
+  licensing: {
+    checkoutUrl: 'https://finzen.lemonsqueezy.com/buy/',
+    freeAccountLimit: 2,
+    freeHistoryDays: 30,
+  },
 }
 
 export default config

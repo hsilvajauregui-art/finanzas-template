@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, Crown } from 'lucide-react'
 import { useFinance } from '../context/FinanceContext'
 import { useAppearance } from '../context/AppearanceContext'
+import { useLicense } from '../context/LicenseContext'
+import config from '../config'
 import TransferModal from '../components/TransferModal'
 
 const TYPE_LABELS = { all: 'Todo', income: 'Ingresos', expense: 'Gastos', transfer: 'Traspasos' }
@@ -12,14 +14,23 @@ const TYPE_COLORS = {
 }
 const TYPE_SIGN = { income: '+', expense: '-', transfer: '↔ ' }
 
-export default function History({ onEditTransaction }) {
+export default function History({ onEditTransaction, onNavigate }) {
   const { state, dispatch } = useFinance()
   const { fmt, fmtDate } = useAppearance()
+  const { isPro } = useLicense()
   const [filter, setFilter] = useState('all')
   const [editingTransfer, setEditingTransfer] = useState(null)
 
+  const historyCutoff = new Date()
+  historyCutoff.setDate(historyCutoff.getDate() - config.licensing.freeHistoryDays)
+
+  const hiddenByPlan = !isPro
+    ? state.transactions.filter(t => new Date(t.date) < historyCutoff).length
+    : 0
+
   const filtered = [...state.transactions]
     .filter(t => filter === 'all' || t.type === filter)
+    .filter(t => isPro || new Date(t.date) >= historyCutoff)
     .sort((a, b) => new Date(b.date) - new Date(a.date))
 
   function handleDelete(id) {
@@ -48,6 +59,20 @@ export default function History({ onEditTransaction }) {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Historial</h2>
         <span className="text-sm text-gray-400">{filtered.length} registros</span>
       </div>
+
+      {/* Free plan history limit notice */}
+      {hiddenByPlan > 0 && (
+        <div className="flex items-center justify-between gap-3 flex-wrap p-3 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800">
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            Plan Free: solo se muestran los últimos {config.licensing.freeHistoryDays} días.
+            {' '}{hiddenByPlan} {hiddenByPlan === 1 ? 'transacción anterior está oculta' : 'transacciones anteriores están ocultas'}.
+          </p>
+          <button onClick={() => onNavigate?.('settings')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors shrink-0">
+            <Crown size={13} strokeWidth={2} />Obtener Pro
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">

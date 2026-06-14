@@ -3,6 +3,8 @@ import { ThemeProvider } from './context/ThemeContext'
 import { FinanceProvider } from './context/FinanceContext'
 import { AppearanceProvider } from './context/AppearanceContext'
 import { AlertsProvider } from './context/AlertsContext'
+import { LicenseProvider, useLicense } from './context/LicenseContext'
+import UpgradeLock from './components/UpgradeLock'
 import Layout from './components/Layout'
 import TransactionModal from './components/TransactionModal'
 import TransferModal from './components/TransferModal'
@@ -48,6 +50,16 @@ const PAGES = {
   config: Config,
 }
 
+const LOCKED_PAGES = new Set(['patrimony', 'debts', 'analysis'])
+
+function GatedPage({ pageKey, Page, onNavigate, ...rest }) {
+  const { isPro } = useLicense()
+  if (LOCKED_PAGES.has(pageKey) && !isPro) {
+    return <UpgradeLock feature={pageKey} onNavigate={onNavigate} />
+  }
+  return <Page onNavigate={onNavigate} {...rest} />
+}
+
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [txModalOpen, setTxModalOpen] = useState(false)
@@ -82,6 +94,7 @@ export default function App() {
     <ErrorBoundary>
     <ThemeProvider>
       <AppearanceProvider>
+      <LicenseProvider>
       <AlertsProvider>
       <FinanceProvider>
         <Layout
@@ -90,7 +103,9 @@ export default function App() {
           onNewTransaction={openNewTransaction}
           onNewTransfer={() => setTransferOpen(true)}
         >
-          <Page
+          <GatedPage
+            pageKey={currentPage}
+            Page={Page}
             onEditTransaction={openEditTransaction}
             onNewTransfer={() => setTransferOpen(true)}
             onNavigate={setCurrentPage}
@@ -119,6 +134,7 @@ export default function App() {
         <UpdatePrompt />
       </FinanceProvider>
       </AlertsProvider>
+      </LicenseProvider>
       </AppearanceProvider>
     </ThemeProvider>
     </ErrorBoundary>

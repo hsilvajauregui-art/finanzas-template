@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Check, X as XIcon, ExternalLink, RotateCcw } from 'lucide-react'
+import { Plus, Pencil, Trash2, Check, X as XIcon, ExternalLink, RotateCcw, Crown } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { useAppearance, CURRENCY_OPTIONS, DATE_FORMAT_OPTIONS } from '../context/AppearanceContext'
 import { useAlerts } from '../context/AlertsContext'
 import { useFinance } from '../context/FinanceContext'
 import { initialState } from '../context/FinanceContext'
+import { useLicense } from '../context/LicenseContext'
+import config from '../config'
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -185,8 +187,10 @@ const PRESET_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#ef4444', '#f97316', '#
 
 const emptyNewAcc = { name: '', type: 'debit', balance: '', color: '#3b82f6' }
 
-function AccountsTab() {
+function AccountsTab({ onNavigate }) {
   const { state, dispatch } = useFinance()
+  const { isPro } = useLicense()
+  const atAccountLimit = !isPro && state.accounts.length >= config.licensing.freeAccountLimit
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName]   = useState('')
   const [editType, setEditType]   = useState('')
@@ -307,6 +311,16 @@ function AccountsTab() {
               </button>
             </div>
           </div>
+        ) : atAccountLimit ? (
+          <div className="flex items-center justify-between gap-3 flex-wrap p-3 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800">
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              El plan Free permite hasta {config.licensing.freeAccountLimit} cuentas. Actualiza a Pro para agregar más.
+            </p>
+            <button onClick={() => onNavigate?.('settings')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors shrink-0">
+              <Crown size={13} strokeWidth={2} />Obtener Pro
+            </button>
+          </div>
         ) : (
           <button onClick={startAdd} className="flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
             <Plus size={14} strokeWidth={2.5} />Nueva cuenta
@@ -376,7 +390,7 @@ export default function Config({ onNavigate }) {
             <CategoriesTab key={catType} catType={catType} />
           </>
         ) : (
-          <AccountsTab />
+          <AccountsTab onNavigate={onNavigate} />
         )}
       </Section>
 
