@@ -46,6 +46,22 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        screenshots: [
+          {
+            src: 'screenshots/dashboard.png',
+            sizes: '1899x940',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'Dashboard de Finanzas',
+          },
+          {
+            src: 'screenshots/analisis.png',
+            sizes: '1898x944',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'Análisis de gastos e ingresos',
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,ico,woff,woff2,png}'],
