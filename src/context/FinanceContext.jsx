@@ -187,6 +187,7 @@ export const initialState = {
       { name: 'Ropa',            subcategories: ['Ropa', 'Calzado', 'Accesorios'] },
       { name: 'Educación',       subcategories: ['Colegiatura', 'Cursos', 'Libros', 'Software'] },
       { name: 'Deudas',          subcategories: [] },
+      { name: 'Ahorro',          subcategories: [] },
       { name: 'Otros',           subcategories: [] },
     ],
     income: [
@@ -383,6 +384,28 @@ function reducer(state, action) {
       return { ...state, goals: state.goals.map(g => g.id === action.payload.id ? action.payload : g) }
     case 'DELETE_GOAL':
       return { ...state, goals: state.goals.filter(g => g.id !== action.payload) }
+    case 'CONTRIBUTE_GOAL': {
+      // payload: { goalId, amount, accountId, date, note }
+      const { goalId, amount, accountId, date, note } = action.payload
+      const goal = state.goals.find(g => g.id === goalId)
+      if (!goal) return state
+      const newCurrent = Math.min(goal.targetAmount, goal.currentAmount + amount)
+      return {
+        ...state,
+        goals: state.goals.map(g => g.id === goalId ? { ...g, currentAmount: newCurrent } : g),
+        accounts: state.accounts.map(a => a.id === accountId ? { ...a, balance: a.balance - amount } : a),
+        transactions: [...state.transactions, {
+          id: Date.now(),
+          type: 'expense',
+          category: 'Ahorro',
+          subcategory: goal.name,
+          amount,
+          date,
+          account: accountId,
+          note: note || `Aporte a meta ${goal.name}`,
+        }],
+      }
+    }
     case 'ADD_INCOME':
       return { ...state, incomes: [...state.incomes, { ...action.payload, id: Date.now() }] }
     case 'UPDATE_INCOME':
@@ -409,6 +432,10 @@ export function FinanceProvider({ children }) {
       // Backward compat: add "Deudas" expense category if missing
       if (parsed.categories?.expense && !parsed.categories.expense.some(c => c.name === 'Deudas')) {
         parsed.categories.expense = [...parsed.categories.expense, { name: 'Deudas', subcategories: [] }]
+      }
+      // Backward compat: add "Ahorro" expense category if missing
+      if (parsed.categories?.expense && !parsed.categories.expense.some(c => c.name === 'Ahorro')) {
+        parsed.categories.expense = [...parsed.categories.expense, { name: 'Ahorro', subcategories: [] }]
       }
       // Backward compat: normalize transfers that are missing toAccount
       if (parsed.transactions) {
