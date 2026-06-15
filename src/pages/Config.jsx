@@ -189,11 +189,13 @@ const emptyNewAcc = { name: '', type: 'debit', balance: '', color: '#3b82f6' }
 
 function AccountsTab({ onNavigate }) {
   const { state, dispatch } = useFinance()
+  const { fmt } = useAppearance()
   const { isPro } = useLicense()
   const atAccountLimit = !isPro && state.accounts.length >= config.licensing.freeAccountLimit
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName]   = useState('')
   const [editType, setEditType]   = useState('')
+  const [editBalance, setEditBalance] = useState('')
   const [addingNew, setAddingNew] = useState(false)
   const [newAcc, setNewAcc]       = useState(emptyNewAcc)
 
@@ -203,13 +205,14 @@ function AccountsTab({ onNavigate }) {
     ).length
   }
 
-  function startEdit(account) { setEditingId(account.id); setEditName(account.name); setEditType(account.type) }
+  function startEdit(account) { setEditingId(account.id); setEditName(account.name); setEditType(account.type); setEditBalance(String(account.balance)) }
   function cancelEdit() { setEditingId(null) }
   function confirmEdit() {
     const trimmed = editName.trim()
     if (!trimmed) { cancelEdit(); return }
+    const balance = Number(editBalance)
     const account = state.accounts.find(a => a.id === editingId)
-    dispatch({ type: 'UPDATE_ACCOUNT', payload: { ...account, name: trimmed, type: editType } })
+    dispatch({ type: 'UPDATE_ACCOUNT', payload: { ...account, name: trimmed, type: editType, balance: isNaN(balance) ? account.balance : balance } })
     setEditingId(null)
   }
   function handleDelete(account) {
@@ -252,6 +255,9 @@ function AccountsTab({ onNavigate }) {
                     onKeyDown={e => { if (e.key === 'Enter') confirmEdit(); if (e.key === 'Escape') cancelEdit() }}
                     className="flex-1 min-w-[100px] px-2.5 py-1 text-sm rounded-lg border border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   {typeSelect(editType, setEditType)}
+                  <input type="number" step="0.01" value={editBalance} onChange={e => setEditBalance(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') confirmEdit(); if (e.key === 'Escape') cancelEdit() }}
+                    className="w-28 px-2.5 py-1 text-sm rounded-lg border border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0" />
                   <button onClick={confirmEdit} title="Guardar" className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-950 transition-colors shrink-0"><Check size={14} /></button>
                   <button onClick={cancelEdit} title="Cancelar" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0"><XIcon size={14} /></button>
                 </div>
@@ -260,6 +266,7 @@ function AccountsTab({ onNavigate }) {
                   <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: account.color }} />
                   <span className="flex-1 text-sm text-gray-900 dark:text-white min-w-0 truncate">{account.name}</span>
                   <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{ACCOUNT_TYPE_LABELS[account.type] ?? account.type}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 shrink-0 tabular-nums">{fmt(account.balance)}</span>
                   {count > 0 && <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 tabular-nums">{count} txns</span>}
                   <button onClick={() => startEdit(account)} title="Editar" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors shrink-0"><Pencil size={14} /></button>
                   <button onClick={() => handleDelete(account)} disabled={count > 0}
