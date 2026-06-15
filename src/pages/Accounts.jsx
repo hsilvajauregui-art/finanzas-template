@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useMemo } from 'react'
-import { CreditCard, Smartphone, Banknote, Wallet, ArrowLeftRight, ArrowRight } from 'lucide-react'
+import { CreditCard, Smartphone, Banknote, Wallet, ArrowLeftRight, ArrowRight, Pencil, Check, X } from 'lucide-react'
 import { useFinance } from '../context/FinanceContext'
 import { useAppearance } from '../context/AppearanceContext'
 
@@ -19,9 +20,24 @@ const TYPE_LABELS = {
 }
 
 function AccountCard({ account, fmt }) {
+  const { dispatch } = useFinance()
   const Icon = ACCOUNT_ICONS[account.type] ?? Wallet
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(String(account.balance))
+
+  function startEdit() {
+    setValue(String(account.balance))
+    setEditing(true)
+  }
+
+  function confirm() {
+    const num = Number(value)
+    dispatch({ type: 'UPDATE_ACCOUNT', payload: { ...account, balance: isNaN(num) ? account.balance : num } })
+    setEditing(false)
+  }
+
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 group">
       <div className="flex items-start justify-between mb-4">
         <div
           className="w-9 h-9 rounded-lg flex items-center justify-center"
@@ -34,7 +50,29 @@ function AccountCard({ account, fmt }) {
         </span>
       </div>
       <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{account.name}</p>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white">{fmt(account.balance)}</p>
+      {editing ? (
+        <div className="flex items-center gap-2">
+          <input
+            autoFocus type="number" step="0.01" value={value}
+            onChange={e => setValue(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') setEditing(false) }}
+            className="w-full px-2 py-1 text-lg font-bold rounded-lg border border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button onClick={confirm} title="Guardar" className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-950 transition-colors shrink-0"><Check size={16} /></button>
+          <button onClick={() => setEditing(false)} title="Cancelar" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0"><X size={16} /></button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{fmt(account.balance)}</p>
+          <button
+            onClick={startEdit}
+            title="Editar saldo"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+          >
+            <Pencil size={14} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
