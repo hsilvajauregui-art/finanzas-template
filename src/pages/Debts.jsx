@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
-import { Plus, Pencil, Trash2, AlertCircle, Calendar, Clock } from 'lucide-react'
+import { Plus, Pencil, Trash2, AlertCircle, Calendar, Clock, Banknote } from 'lucide-react'
 import { useFinance } from '../context/FinanceContext'
 import DebtModal from '../components/DebtModal'
+import PayDebtModal from '../components/PayDebtModal'
 import { daysUntilPayment } from '../utils/finance'
 import { useAppearance } from '../context/AppearanceContext'
 
@@ -16,6 +17,8 @@ export default function Debts() {
   const { fmt } = useAppearance()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingDebt, setEditingDebt] = useState(null)
+  const [payModalOpen, setPayModalOpen] = useState(false)
+  const [payingDebt, setPayingDebt] = useState(null)
 
   const totalDebt = useMemo(() => state.debts.reduce((s, d) => s + d.remainingAmount, 0), [state.debts])
   const totalMonthly = useMemo(() => state.debts.reduce((s, d) => s + d.monthlyPayment, 0), [state.debts])
@@ -24,6 +27,8 @@ export default function Debts() {
 
   function openEdit(debt) { setEditingDebt(debt); setModalOpen(true) }
   function closeModal() { setModalOpen(false); setEditingDebt(null) }
+  function openPay(debt) { setPayingDebt(debt); setPayModalOpen(true) }
+  function closePayModal() { setPayModalOpen(false); setPayingDebt(null) }
 
   // Sort debts: most urgent first (by days until payment)
   const sortedDebts = useMemo(
@@ -162,6 +167,16 @@ export default function Debts() {
                   </div>
                 </div>
 
+                {/* Register payment */}
+                <button
+                  onClick={() => openPay(debt)}
+                  disabled={debt.remainingAmount <= 0}
+                  className="w-full flex items-center justify-center gap-2 mb-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Banknote size={14} strokeWidth={2} />
+                  Registrar pago
+                </button>
+
                 {/* Progress bar */}
                 <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-2">
                   <div
@@ -184,6 +199,7 @@ export default function Debts() {
       )}
 
       <DebtModal isOpen={modalOpen} onClose={closeModal} debt={editingDebt} />
+      <PayDebtModal isOpen={payModalOpen} onClose={closePayModal} debt={payingDebt} />
     </div>
   )
 }
