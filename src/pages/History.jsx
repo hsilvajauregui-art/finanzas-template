@@ -128,8 +128,8 @@ export default function History({ onEditTransaction, onNavigate }) {
                     {TYPE_SIGN[t.type]}{fmt(t.amount)}
                   </span>
 
-                  {/* Actions — visible on hover */}
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Actions — visible on hover (desktop) / always visible (mobile) */}
+                  <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => t.type === 'transfer' ? handleEditTransfer(t) : onEditTransaction(t)}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"

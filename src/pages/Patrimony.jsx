@@ -164,7 +164,7 @@ export default function Patrimony() {
                       <p className="text-xs text-gray-400">{ASSET_TYPE_LABELS[asset.type] ?? asset.type} · {asset.currency}</p>
                     </div>
                     <span className="text-sm font-semibold text-gray-900 dark:text-white shrink-0">{fmt(asset.value)}</span>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button onClick={() => openEditAsset(asset)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors">
                         <Pencil size={13} />
                       </button>
@@ -221,7 +221,7 @@ export default function Patrimony() {
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${status.bg} ${status.color}`}>
                         {status.label}
                       </span>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => openContribute(goal)}
                           disabled={goal.currentAmount >= goal.targetAmount}

@@ -141,7 +141,7 @@ export default function Debts() {
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badge}`}>
                       {days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `día ${debt.dueDay}`}
                     </span>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button onClick={() => openEdit(debt)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors">
                         <Pencil size={13} />
                       </button>

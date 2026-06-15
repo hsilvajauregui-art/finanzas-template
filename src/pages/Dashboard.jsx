@@ -179,7 +179,7 @@ export default function Dashboard({ onEditTransaction }) {
               {t.type !== 'transfer' && (
                 <button
                   onClick={() => onEditTransaction(t)}
-                  className="p-1.5 rounded-lg text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 opacity-0 group-hover:opacity-100 transition-all"
+                  className="p-1.5 rounded-lg text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all"
                 >
                   <Pencil size={14} />
                 </button>
