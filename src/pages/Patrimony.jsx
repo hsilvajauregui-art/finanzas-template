@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react'
-import { Plus, Pencil, Trash2, TrendingUp, Home, Car, Banknote, Package, Target, PiggyBank } from 'lucide-react'
+import { Plus, Pencil, Trash2, TrendingUp, Home, Car, Banknote, Package, Target, PiggyBank, ArrowDownToLine } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { useFinance } from '../context/FinanceContext'
 import { useTheme } from '../context/ThemeContext'
 import AssetModal from '../components/AssetModal'
 import GoalModal from '../components/GoalModal'
 import GoalContributionModal from '../components/GoalContributionModal'
+import WithdrawGoalModal from '../components/WithdrawGoalModal'
 import { CHART_COLORS } from '../utils/finance'
 import { useAppearance } from '../context/AppearanceContext'
 
@@ -63,6 +64,8 @@ export default function Patrimony() {
   const [editingGoal, setEditingGoal] = useState(null)
   const [contribModalOpen, setContribModalOpen] = useState(false)
   const [contributingGoal, setContributingGoal] = useState(null)
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
+  const [withdrawingGoal, setWithdrawingGoal] = useState(null)
 
   const totalAssets = useMemo(() => state.assets.reduce((s, a) => s + a.value, 0), [state.assets])
   const totalDebts = useMemo(() => state.debts.reduce((s, d) => s + d.remainingAmount, 0), [state.debts])
@@ -84,6 +87,8 @@ export default function Patrimony() {
   function closeGoalModal() { setGoalModalOpen(false); setEditingGoal(null) }
   function openContribute(goal) { setContributingGoal(goal); setContribModalOpen(true) }
   function closeContribModal() { setContribModalOpen(false); setContributingGoal(null) }
+  function openWithdraw(goal) { setWithdrawingGoal(goal); setWithdrawModalOpen(true) }
+  function closeWithdrawModal() { setWithdrawModalOpen(false); setWithdrawingGoal(null) }
 
   return (
     <div className="space-y-6">
@@ -230,6 +235,14 @@ export default function Patrimony() {
                         >
                           <PiggyBank size={13} />
                         </button>
+                        <button
+                          onClick={() => openWithdraw(goal)}
+                          disabled={goal.currentAmount <= 0}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Retirar"
+                        >
+                          <ArrowDownToLine size={13} />
+                        </button>
                         <button onClick={() => openEditGoal(goal)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors">
                           <Pencil size={13} />
                         </button>
@@ -259,6 +272,7 @@ export default function Patrimony() {
       <AssetModal isOpen={assetModalOpen} onClose={closeAssetModal} asset={editingAsset} />
       <GoalModal isOpen={goalModalOpen} onClose={closeGoalModal} goal={editingGoal} />
       <GoalContributionModal isOpen={contribModalOpen} onClose={closeContribModal} goal={contributingGoal} />
+      <WithdrawGoalModal isOpen={withdrawModalOpen} onClose={closeWithdrawModal} goal={withdrawingGoal} />
     </div>
   )
 }
