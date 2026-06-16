@@ -230,7 +230,7 @@ export default function Settings() {
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              Plan {isPro ? 'Pro' : 'Free'}
+              {isPro ? 'Finzen Pro' : 'Plan Free'}
             </p>
             <p className="text-xs text-gray-400 mt-0.5">
               {isPro
@@ -241,19 +241,33 @@ export default function Settings() {
         </div>
 
         {isPro ? (
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-xs text-gray-400">
-              {license?.source === 'play'
-                ? 'Compra verificada con Google Play'
-                : `Licencia activa${license?.licenseKey ? ` · ${'•'.repeat(8)}${license.licenseKey.slice(-4)}` : ''}`}
-            </p>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/50 rounded-lg border border-amber-200 dark:border-amber-800">
+              <CheckCircle size={15} className="text-amber-600 dark:text-amber-400 shrink-0" />
+              <p className="text-xs text-amber-700 dark:text-amber-300 flex-1">
+                {license?.source === 'play'
+                  ? 'Suscripción verificada con Google Play'
+                  : `Suscripción activa${license?.licenseKey ? ` · ${'•'.repeat(6)}${license.licenseKey.slice(-4)}` : ''}`}
+              </p>
+            </div>
             {license?.source !== 'play' && (
-              <button
-                onClick={handleDeactivate}
-                className="px-4 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                Desactivar licencia
-              </button>
+              <div className="flex items-center gap-3 flex-wrap">
+                <a
+                  href={config.licensing.customerPortalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <ExternalLink size={12} strokeWidth={2} />
+                  Gestionar suscripción
+                </a>
+                <button
+                  onClick={handleDeactivate}
+                  className="text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                >
+                  Desconectar de este dispositivo
+                </button>
+              </div>
             )}
           </div>
         ) : (
@@ -261,7 +275,7 @@ export default function Settings() {
             {activateSuccess && (
               <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                 <CheckCircle size={16} className="text-green-600 dark:text-green-400 shrink-0" />
-                <p className="text-sm text-green-700 dark:text-green-300 font-medium">Licencia activada — ahora tienes Pro</p>
+                <p className="text-sm text-green-700 dark:text-green-300 font-medium">¡Suscripción activada! Ya tienes acceso Pro.</p>
               </div>
             )}
             {licenseError && (
@@ -278,39 +292,48 @@ export default function Settings() {
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white text-sm font-medium transition-colors disabled:cursor-not-allowed"
               >
                 <Crown size={14} strokeWidth={2} />
-                {licenseStatus === 'loading' ? 'Procesando…' : 'Comprar Finzen Pro'}
+                {licenseStatus === 'loading' ? 'Procesando…' : 'Suscribirse a Finzen Pro — $59/mes'}
               </button>
             ) : (
               <>
-                <div className="flex gap-2 flex-wrap">
-                  <div className="relative flex-1 min-w-[200px]">
-                    <KeyRound size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" strokeWidth={1.75} />
-                    <input
-                      type="text"
-                      value={licenseKeyInput}
-                      onChange={e => { setLicenseKeyInput(e.target.value); clearError() }}
-                      placeholder="Código de licencia"
-                      className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <button
-                    onClick={handleActivate}
-                    disabled={licenseStatus === 'loading' || !licenseKeyInput.trim()}
-                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white text-sm font-medium transition-colors disabled:cursor-not-allowed"
-                  >
-                    {licenseStatus === 'loading' ? 'Activando…' : 'Activar'}
-                  </button>
-                </div>
                 <a
                   href={config.licensing.checkoutUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-400 hover:underline"
+                  className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white transition-colors"
                 >
-                  <Crown size={14} strokeWidth={2} />
-                  Obtener Finzen Pro
-                  <ExternalLink size={12} strokeWidth={2} />
+                  <div className="flex items-center gap-2">
+                    <Crown size={16} strokeWidth={2} />
+                    <div className="text-left">
+                      <p className="text-sm font-semibold">Obtener Finzen Pro</p>
+                      <p className="text-xs text-amber-100">$59 MXN / mes · cancela cuando quieras</p>
+                    </div>
+                  </div>
+                  <ExternalLink size={14} strokeWidth={2} className="text-amber-200" />
                 </a>
+
+                <div className="space-y-1.5">
+                  <p className="text-xs text-gray-400 font-medium">¿Ya tienes una suscripción? Ingresa tu clave de acceso:</p>
+                  <div className="flex gap-2 flex-wrap">
+                    <div className="relative flex-1 min-w-[200px]">
+                      <KeyRound size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" strokeWidth={1.75} />
+                      <input
+                        type="text"
+                        value={licenseKeyInput}
+                        onChange={e => { setLicenseKeyInput(e.target.value); clearError() }}
+                        placeholder="Clave de acceso"
+                        className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <button
+                      onClick={handleActivate}
+                      disabled={licenseStatus === 'loading' || !licenseKeyInput.trim()}
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white text-sm font-medium transition-colors disabled:cursor-not-allowed"
+                    >
+                      {licenseStatus === 'loading' ? 'Activando…' : 'Activar'}
+                    </button>
+                  </div>
+                </div>
               </>
             )}
           </div>

@@ -9,6 +9,8 @@ import {
 
 const STORAGE_KEY = 'finanzas-license'
 const INSTANCE_NAME_KEY = 'finanzas-license-instance-name'
+// Re-validar suscripción si han pasado más de 24 horas desde la última validación
+const REVALIDATE_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 const LicenseContext = createContext(null)
 
@@ -39,6 +41,44 @@ function getInstanceName() {
 }
 
 /**
+ * Re-valida una licencia/suscripción de Lemon Squeezy.
+ * Devuelve `true` si sigue activa, `false` si expiró o fue cancelada.
+ */
+async function revalidateLemonSqueezy(licenseKey, instanceId) {
+  try {
+    const body = new URLSearchParams({ license_key: licenseKey })
+    if (instanceId) body.append('instance_id', instanceId)
+
+    const res = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
+    })
+
+    if (!res.ok) return true // En caso de error de red, no desactivar
+
+    const data = await res.json()
+
+    // Si la respuesta dice que no es válida, desactivar
+    if (!data.valid) return false
+
+    // Verificar estado de la suscripción si está disponible
+    const subStatus = data.meta?.subscription_status
+    if (subStatus && !['active', 'on_trial', 'paused'].includes(subStatus)) {
+      return false
+    }
+
+    return true
+  } catch {
+    // Sin conexión: conservar el acceso (benefit of the doubt)
+    return true
+  }
+}
+
+/**
  * Verifica (y confirma) un purchaseToken de Google Play con el
  * backend. Devuelve `true` si la compra es válida.
  */
@@ -64,6 +104,32 @@ export function LicenseProvider({ children }) {
   const [playBillingAvailable, setPlayBillingAvailable] = useState(false)
 
   const isPro = !!license?.activated
+
+  // Re-valida la suscripción de Lemon Squeezy al cargar la app.
+  // Si han pasado más de 24h desde la última validación, llama a la API.
+  // Si la suscripción fue cancelada o expiró, desactiva el acceso.
+  useEffect(() => {
+    if (license?.source !== 'lemonsqueezy' || !license?.licenseKey) return
+
+    const lastValidated = license.lastValidatedAt ? new Date(license.lastValidatedAt).getTime() : 0
+    const shouldRevalidate = Date.now() - lastValidated > REVALIDATE_INTERVAL_MS
+
+    if (!shouldRevalidate) return
+
+    revalidateLemonSqueezy(license.licenseKey, license.instanceId).then((stillActive) => {
+      if (stillActive) {
+        // Actualizar timestamp de última validación
+        const updated = { ...license, lastValidatedAt: new Date().toISOString() }
+        saveLicense(updated)
+        setLicense(updated)
+      } else {
+        // Suscripción cancelada o expirada — revocar acceso local
+        saveLicense(null)
+        setLicense(null)
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Permite activar Pro manualmente visitando una URL con
   // ?finzenpro=KEY (uso personal del propietario de la app, sin pasar
@@ -137,7 +203,7 @@ export function LicenseProvider({ children }) {
   const activate = useCallback(async (rawKey) => {
     const licenseKey = rawKey.trim()
     if (!licenseKey) {
-      setError('Ingresa un código de licencia.')
+      setError('Ingresa tu clave de acceso.')
       return false
     }
 
@@ -161,7 +227,7 @@ export function LicenseProvider({ children }) {
 
       if (!data.activated) {
         setStatus('error')
-        setError(data.error || 'No se pudo activar la licencia. Verifica el código.')
+        setError(data.error || 'No se pudo activar. Verifica tu clave o revisa que tu suscripción esté activa.')
         return false
       }
 
@@ -171,6 +237,7 @@ export function LicenseProvider({ children }) {
         activated: true,
         instanceId: data.instance?.id ?? null,
         activatedAt: new Date().toISOString(),
+        lastValidatedAt: new Date().toISOString(),
       }
       saveLicense(record)
       setLicense(record)
@@ -178,7 +245,7 @@ export function LicenseProvider({ children }) {
       return true
     } catch {
       setStatus('error')
-      setError('No se pudo conectar con el servidor de licencias. Revisa tu conexión a internet.')
+      setError('No se pudo conectar. Revisa tu conexión a internet.')
       return false
     }
   }, [])

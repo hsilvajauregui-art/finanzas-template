@@ -52,7 +52,10 @@ const config = {
    * Edita `checkoutUrl` con el link de compra de Lemon Squeezy.
    */
   licensing: {
-    checkoutUrl: 'https://finzen.lemonsqueezy.com/buy/',
+    /** URL de checkout de la suscripción mensual en Lemon Squeezy */
+    checkoutUrl: 'https://finzen.lemonsqueezy.com/buy/1796312',
+    /** Portal de cliente de Lemon Squeezy para gestionar/cancelar suscripción */
+    customerPortalUrl: 'https://app.lemonsqueezy.com/my-orders',
     freeAccountLimit: 2,
     freeHistoryDays: 30,
   },
