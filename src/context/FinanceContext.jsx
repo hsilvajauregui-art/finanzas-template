@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useEffect } from 'react'
+import { createContext, useContext, useReducer, useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 const STORAGE_KEY = 'finanzas-data'
 
@@ -442,56 +443,86 @@ function reducer(state, action) {
   }
 }
 
+function applyBackwardCompat(parsed, init) {
+  if (!parsed.categories) parsed.categories = init.categories
+  if (parsed.categories?.expense && !parsed.categories.expense.some(c => c.name === 'Deudas'))
+    parsed.categories.expense = [...parsed.categories.expense, { name: 'Deudas', subcategories: [] }]
+  if (parsed.categories?.expense && !parsed.categories.expense.some(c => c.name === 'Ahorro'))
+    parsed.categories.expense = [...parsed.categories.expense, { name: 'Ahorro', subcategories: [] }]
+  if (parsed.categories?.income && !parsed.categories.income.some(c => c.name === 'Ahorro'))
+    parsed.categories.income = [...parsed.categories.income, { name: 'Ahorro', subcategories: [] }]
+  if (parsed.transactions)
+    parsed.transactions = parsed.transactions.map(t =>
+      t.type === 'transfer' && t.toAccount == null
+        ? { ...t, toAccount: t.to ?? t.destination ?? t.toId ?? null }
+        : t
+    )
+  if (parsed.assets) {
+    const vehiclePattern = /\b(auto|coche|carro|camioneta|truck|van|sedan|suv|moto|mazda|toyota|honda|ford|chevrolet|nissan|kia|hyundai|vw|volkswagen)\b/i
+    parsed.assets = parsed.assets.map(a =>
+      a.type === 'property' && vehiclePattern.test(a.name) ? { ...a, type: 'vehicle' } : a
+    )
+  }
+  return parsed
+}
+
 const FinanceContext = createContext(null)
 
 export function FinanceProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState, (init) => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (!saved) return init
-      const parsed = JSON.parse(saved)
-      // Backward compat: ensure categories exists in older saved states
-      if (!parsed.categories) parsed.categories = init.categories
-      // Backward compat: add "Deudas" expense category if missing
-      if (parsed.categories?.expense && !parsed.categories.expense.some(c => c.name === 'Deudas')) {
-        parsed.categories.expense = [...parsed.categories.expense, { name: 'Deudas', subcategories: [] }]
-      }
-      // Backward compat: add "Ahorro" expense category if missing
-      if (parsed.categories?.expense && !parsed.categories.expense.some(c => c.name === 'Ahorro')) {
-        parsed.categories.expense = [...parsed.categories.expense, { name: 'Ahorro', subcategories: [] }]
-      }
-      // Backward compat: add "Ahorro" income category if missing
-      if (parsed.categories?.income && !parsed.categories.income.some(c => c.name === 'Ahorro')) {
-        parsed.categories.income = [...parsed.categories.income, { name: 'Ahorro', subcategories: [] }]
-      }
-      // Backward compat: normalize transfers that are missing toAccount
-      if (parsed.transactions) {
-        parsed.transactions = parsed.transactions.map(t => {
-          if (t.type === 'transfer' && t.toAccount == null) {
-            return { ...t, toAccount: t.to ?? t.destination ?? t.toId ?? null }
-          }
-          return t
-        })
-      }
-      // Backward compat: fix assets with wrong type (e.g. vehicles typed as property)
-      if (parsed.assets) {
-        const vehiclePattern = /\b(auto|coche|carro|camioneta|truck|van|sedan|suv|moto|mazda|toyota|honda|ford|chevrolet|nissan|kia|hyundai|vw|volkswagen)\b/i
-        parsed.assets = parsed.assets.map(a => {
-          if (a.type === 'property' && vehiclePattern.test(a.name)) {
-            return { ...a, type: 'vehicle' }
-          }
-          return a
-        })
-      }
-      return parsed
-    } catch {
-      return init
-    }
-  })
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const [loaded, setLoaded] = useState(false)
 
+  // Cargar datos desde Supabase al iniciar sesión
   useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoaded(true); return }
+
+      const { data, error } = await supabase
+        .from('user_data')
+        .select('data')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!error && data?.data && Object.keys(data.data).length > 0) {
+        // Datos en Supabase — cargarlos
+        const compatible = applyBackwardCompat(data.data, initialState)
+        dispatch({ type: 'LOAD', payload: compatible })
+      } else {
+        // Usuario nuevo — intentar migrar desde localStorage
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY)
+          if (saved) {
+            const parsed = applyBackwardCompat(JSON.parse(saved), initialState)
+            dispatch({ type: 'LOAD', payload: parsed })
+          }
+        } catch { /* nada */ }
+      }
+      setLoaded(true)
+    }
+    loadData()
+  }, [])
+
+  // Guardar en Supabase cada vez que cambia el estado
+  useEffect(() => {
+    if (!loaded) return
+    async function saveData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      await supabase
+        .from('user_data')
+        .upsert({ user_id: user.id, data: state, updated_at: new Date().toISOString() })
+    }
+    saveData()
+    // También mantener localStorage como respaldo offline
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  }, [state])
+  }, [state, loaded])
+
+  if (!loaded) return (
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"/>
+    </div>
+  )
 
   return (
     <FinanceContext.Provider value={{ state, dispatch }}>
