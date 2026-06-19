@@ -1,4 +1,6 @@
 import { useState, useEffect, Component } from 'react'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import Login from './pages/Login'
 import { ThemeProvider } from './context/ThemeContext'
 import { FinanceProvider } from './context/FinanceContext'
 import { AppearanceProvider } from './context/AppearanceContext'
@@ -89,6 +91,16 @@ export default function App() {
     setTxModalOpen(false)
     setEditingTransaction(null)
   }
+
+  const { user, loading } = useAuth()
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"/>
+    </div>
+  )
+
+  if (!user) return <Login />
 
   return (
     <ErrorBoundary>

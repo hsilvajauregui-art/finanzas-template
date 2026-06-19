@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Check, X as XIcon, ExternalLink, RotateCcw, Crown } from 'lucide-react'
+import { Plus, Pencil, Trash2, Check, X as XIcon, ExternalLink, RotateCcw, Crown, LogOut } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { useAppearance, CURRENCY_OPTIONS, DATE_FORMAT_OPTIONS } from '../context/AppearanceContext'
 import { useAlerts } from '../context/AlertsContext'
 import { useFinance } from '../context/FinanceContext'
 import { initialState } from '../context/FinanceContext'
 import { useLicense } from '../context/LicenseContext'
+import { useAuth } from '../context/AuthContext'
 import config from '../config'
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -346,6 +347,7 @@ export default function Config({ onNavigate }) {
   const { debtRatioThreshold, warnLargeExpense, paymentReminderDays,
           setDebtRatioThreshold, setWarnLargeExpense, setPaymentReminderDays } = useAlerts()
   const { dispatch } = useFinance()
+  const { user, signOut } = useAuth()
 
   const [catAccountTab, setCatAccountTab] = useState('categories')
   const [catType, setCatType]             = useState('expense')
@@ -447,6 +449,19 @@ export default function Config({ onNavigate }) {
           <button onClick={() => setResetModalOpen(true)}
             className="px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors">
             Restablecer
+          </button>
+        </Row>
+      </Section>
+
+      {/* ── Cuenta ── */}
+      <Section title="Cuenta" description="Gestión de sesión">
+        <Row label={user?.email ?? ''} hint="Sesión activa">
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+          >
+            <LogOut size={14}/>
+            Cerrar sesión
           </button>
         </Row>
       </Section>

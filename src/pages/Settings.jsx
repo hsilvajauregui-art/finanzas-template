@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { Download, Upload, RotateCcw, FileJson, FileText, CheckCircle, XCircle, AlertTriangle, Smartphone, Info, Crown, KeyRound, ExternalLink, ShieldCheck } from 'lucide-react'
+import { Download, Upload, RotateCcw, FileJson, FileText, CheckCircle, XCircle, AlertTriangle, Smartphone, Info, Crown, KeyRound, ExternalLink, ShieldCheck, LogOut } from 'lucide-react'
 import { useFinance } from '../context/FinanceContext'
 import { emptyState } from '../context/FinanceContext'
 import { useAppearance } from '../context/AppearanceContext'
 import { useLicense } from '../context/LicenseContext'
+import { useAuth } from '../context/AuthContext'
 import config from '../config'
 import UpgradeLock from '../components/UpgradeLock'
 
@@ -116,6 +117,7 @@ function ActionRow({ icon: Icon, label, description, onClick, variant = 'default
 export default function Settings() {
   const { state, dispatch } = useFinance()
   const { fmt } = useAppearance()
+  const { user, signOut } = useAuth()
   const {
     isPro,
     license,
@@ -567,11 +569,32 @@ export default function Settings() {
                 >
                   Cancelar
                 </button>
-              </div>
+                 </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* ── Cuenta ── */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Cuenta</h3>
+        </div>
+        <div className="px-6 py-5 flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-700 dark:text-gray-300">{user?.email}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Sesión activa</p>
+          </div>
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+          >
+            <LogOut size={14}/>
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+
     </div>
   )
 }
