@@ -6,6 +6,7 @@ import {
   purchaseProduct,
   completePaymentRequest,
 } from '../lib/playBilling'
+import { supabase } from '../lib/supabase'
 
 const STORAGE_KEY = 'finanzas-license'
 const INSTANCE_NAME_KEY = 'finanzas-license-instance-name'
@@ -102,8 +103,33 @@ export function LicenseProvider({ children }) {
   const [status, setStatus] = useState('idle') // idle | loading | error
   const [error, setError] = useState(null)
   const [playBillingAvailable, setPlayBillingAvailable] = useState(false)
+  const [supabaseIsPro, setSupabaseIsPro] = useState(null) // null = not loaded yet
 
-  const isPro = !!license?.activated
+  // isPro: Supabase is source of truth; fall back to local license
+  const isPro = supabaseIsPro !== null ? supabaseIsPro : !!license?.activated
+
+  // Check is_pro from Supabase on mount and when auth changes
+  useEffect(() => {
+    async function checkSupabasePro() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const { data } = await supabase
+        .from('user_data')
+        .select('is_pro')
+        .eq('user_id', session.user.id)
+        .single()
+
+      if (data) setSupabaseIsPro(!!data.is_pro)
+    }
+
+    checkSupabasePro()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkSupabasePro()
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Re-valida la suscripción de Lemon Squeezy al cargar la app.
   // Si han pasado más de 24h desde la última validación, llama a la API.
