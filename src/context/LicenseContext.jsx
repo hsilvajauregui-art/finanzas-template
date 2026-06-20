@@ -7,6 +7,7 @@ import {
   completePaymentRequest,
 } from '../lib/playBilling'
 import { supabase } from '../lib/supabase'
+import { configureRevenueCat, getRevenueCatIsPro, purchasePackage, restorePurchases, getOfferings } from '../lib/revenuecat'
 
 const STORAGE_KEY = 'finanzas-license'
 const INSTANCE_NAME_KEY = 'finanzas-license-instance-name'
@@ -109,10 +110,28 @@ export function LicenseProvider({ children }) {
   const isPro = supabaseIsPro !== null ? supabaseIsPro : !!license?.activated
 
   // Check is_pro from Supabase on mount and when auth changes
+  // Also configure RevenueCat with the user's ID
   useEffect(() => {
     async function checkSupabasePro() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
+
+      // Configure RevenueCat with Supabase user ID
+      await configureRevenueCat(session.user.id)
+
+      // Check RevenueCat first (native app), then Supabase (web + webhook)
+      const rcPro = await getRevenueCatIsPro()
+      if (rcPro) {
+        setSupabaseIsPro(true)
+        // Sync to Supabase so webhook stays in sync
+        await supabase.from('user_data').upsert({
+          user_id: session.user.id,
+          is_pro: true,
+          pro_source: 'revenuecat',
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' })
+        return
+      }
 
       const { data } = await supabase
         .from('user_data')
@@ -351,6 +370,10 @@ export function LicenseProvider({ children }) {
       clearError,
       playBillingAvailable,
       purchasePro,
+      // RevenueCat
+      getOfferings,
+      purchasePackage,
+      restorePurchases,
     }),
     [isPro, license, status, error, activate, deactivate, clearError, playBillingAvailable, purchasePro]
   )
