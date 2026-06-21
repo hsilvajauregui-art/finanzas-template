@@ -2,11 +2,12 @@ import { useState, useEffect, Component } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import { ThemeProvider } from './context/ThemeContext'
-import { FinanceProvider } from './context/FinanceContext'
+import { FinanceProvider, useFinance } from './context/FinanceContext'
 import { AppearanceProvider } from './context/AppearanceContext'
 import { AlertsProvider } from './context/AlertsContext'
 import { LicenseProvider, useLicense } from './context/LicenseContext'
 import UpgradeLock from './components/UpgradeLock'
+import Onboarding from './components/Onboarding'
 import Layout from './components/Layout'
 import TransactionModal from './components/TransactionModal'
 import TransferModal from './components/TransferModal'
@@ -62,6 +63,64 @@ function GatedPage({ pageKey, Page, onNavigate, ...rest }) {
   return <Page onNavigate={onNavigate} {...rest} />
 }
 
+// Inner component — lives inside FinanceProvider so it can read state
+function AppContent({ currentPage, setCurrentPage, openNewTransaction, openEditTransaction, setTransferOpen, txModalOpen, closeTransaction, editingTransaction, transferOpen, toast, setToast, Page }) {
+  const { state } = useFinance()
+  const [onboardingDone, setOnboardingDone] = useState(() =>
+    localStorage.getItem('finzen_onboarding_done') === '1'
+  )
+
+  const showOnboarding = !onboardingDone && state.accounts.length === 0
+
+  function completeOnboarding() {
+    localStorage.setItem('finzen_onboarding_done', '1')
+    setOnboardingDone(true)
+  }
+
+  if (showOnboarding) return <Onboarding onComplete={completeOnboarding} />
+
+  return (
+    <>
+      <Layout
+        currentPage={currentPage}
+        onNavigate={setCurrentPage}
+        onNewTransaction={openNewTransaction}
+        onNewTransfer={() => setTransferOpen(true)}
+      >
+        <GatedPage
+          pageKey={currentPage}
+          Page={Page}
+          onEditTransaction={openEditTransaction}
+          onNewTransfer={() => setTransferOpen(true)}
+          onNavigate={setCurrentPage}
+        />
+      </Layout>
+
+      <TransactionModal
+        isOpen={txModalOpen}
+        onClose={closeTransaction}
+        transaction={editingTransaction}
+        onSuccess={msg => setToast(msg)}
+      />
+
+      <TransferModal
+        isOpen={transferOpen}
+        onClose={() => setTransferOpen(false)}
+      />
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 bg-gray-900 dark:bg-gray-700 text-white rounded-xl shadow-xl text-sm font-medium pointer-events-none">
+          <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
+          {toast}
+        </div>
+      )}
+
+      <InstallPrompt />
+      <UpdatePrompt />
+    </>
+  )
+}
+
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [txModalOpen, setTxModalOpen] = useState(false)
@@ -104,51 +163,30 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-    <ThemeProvider>
-      <AppearanceProvider>
-      <LicenseProvider>
-      <AlertsProvider>
-      <FinanceProvider>
-        <Layout
-          currentPage={currentPage}
-          onNavigate={setCurrentPage}
-          onNewTransaction={openNewTransaction}
-          onNewTransfer={() => setTransferOpen(true)}
-        >
-          <GatedPage
-            pageKey={currentPage}
-            Page={Page}
-            onEditTransaction={openEditTransaction}
-            onNewTransfer={() => setTransferOpen(true)}
-            onNavigate={setCurrentPage}
-          />
-        </Layout>
-
-        <TransactionModal
-          isOpen={txModalOpen}
-          onClose={closeTransaction}
-          transaction={editingTransaction}
-          onSuccess={msg => setToast(msg)}
-        />
-
-        {/* Toast */}
-        {toast && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 bg-gray-900 dark:bg-gray-700 text-white rounded-xl shadow-xl text-sm font-medium pointer-events-none">
-            <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
-            {toast}
-          </div>
-        )}
-        <TransferModal
-          isOpen={transferOpen}
-          onClose={() => setTransferOpen(false)}
-        />
-        <InstallPrompt />
-        <UpdatePrompt />
-      </FinanceProvider>
-      </AlertsProvider>
-      </LicenseProvider>
-      </AppearanceProvider>
-    </ThemeProvider>
+      <ThemeProvider>
+        <AppearanceProvider>
+          <LicenseProvider>
+            <AlertsProvider>
+              <FinanceProvider>
+                <AppContent
+                  currentPage={currentPage}
+                  setCurrentPage={setCurrentPage}
+                  openNewTransaction={openNewTransaction}
+                  openEditTransaction={openEditTransaction}
+                  setTransferOpen={setTransferOpen}
+                  txModalOpen={txModalOpen}
+                  closeTransaction={closeTransaction}
+                  editingTransaction={editingTransaction}
+                  transferOpen={transferOpen}
+                  toast={toast}
+                  setToast={setToast}
+                  Page={Page}
+                />
+              </FinanceProvider>
+            </AlertsProvider>
+          </LicenseProvider>
+        </AppearanceProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   )
 }
