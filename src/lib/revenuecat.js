@@ -1,7 +1,7 @@
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor'
 import { Capacitor } from '@capacitor/core'
 
-const REVENUECAT_API_KEY = 'test_IDLbAQOKgpnPssNwVnVulmodUZj'
+const REVENUECAT_API_KEY = 'goog_TOjlAiKBBDyEhzjqKkflOQTZqky'
 const ENTITLEMENT_ID = 'Finzen Pro'
 
 let configured = false
