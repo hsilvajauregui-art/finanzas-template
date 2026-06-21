@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { X, ArrowRight, CreditCard, Smartphone, Banknote, Wallet } from 'lucide-react'
+import { X, ArrowRight, CreditCard, Smartphone, Banknote, Wallet, TrendingUp } from 'lucide-react'
 import { useFinance } from '../context/FinanceContext'
 import { useAppearance } from '../context/AppearanceContext'
 
@@ -25,18 +25,24 @@ export default function TransferModal({ isOpen, onClose, transfer = null }) {
   const { fmt, currency } = useAppearance()
   const [form, setForm] = useState(emptyForm)
   const [errors, setErrors] = useState({})
+  // destType: 'account' | 'asset'
+  const [destType, setDestType] = useState('account')
 
   useEffect(() => {
     if (isOpen) {
       if (transfer) {
+        // If editing a transfer-to-asset, detect it
+        const isAssetTransfer = !!transfer.toAsset
+        setDestType(isAssetTransfer ? 'asset' : 'account')
         setForm({
           fromId: String(transfer.account),
-          toId:   String(transfer.toAccount ?? ''),
+          toId:   String(isAssetTransfer ? transfer.toAsset : (transfer.toAccount ?? '')),
           amount: String(transfer.amount),
           date:   transfer.date,
           note:   transfer.note || '',
         })
       } else {
+        setDestType('account')
         const [first, second] = state.accounts
         setForm({
           ...emptyForm,
@@ -48,6 +54,13 @@ export default function TransferModal({ isOpen, onClose, transfer = null }) {
     }
   }, [isOpen, transfer])
 
+  // Reset toId when destType changes
+  function switchDestType(type) {
+    setDestType(type)
+    setForm(prev => ({ ...prev, toId: '' }))
+    setErrors(e => ({ ...e, toId: null }))
+  }
+
   function set(field, value) {
     setForm(prev => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors(e => ({ ...e, [field]: null }))
@@ -58,13 +71,15 @@ export default function TransferModal({ isOpen, onClose, transfer = null }) {
     [form.fromId, state.accounts]
   )
   const toAccount = useMemo(
-    () => state.accounts.find(a => a.id === Number(form.toId)),
-    [form.toId, state.accounts]
+    () => destType === 'account' ? state.accounts.find(a => a.id === Number(form.toId)) : null,
+    [form.toId, state.accounts, destType]
+  )
+  const toAsset = useMemo(
+    () => destType === 'asset' ? state.assets.find(a => a.id === Number(form.toId)) : null,
+    [form.toId, state.assets, destType]
   )
   const amount = Number(form.amount) || 0
 
-  // When editing, the source account will first get back the old amount (balance reversal),
-  // so its effective available balance is higher than what's currently stored.
   const effectiveFromBalance = useMemo(() => {
     if (!fromAccount) return null
     if (transfer && fromAccount.id === transfer.account) return fromAccount.balance + transfer.amount
@@ -73,12 +88,13 @@ export default function TransferModal({ isOpen, onClose, transfer = null }) {
 
   const fromAfter = effectiveFromBalance !== null ? effectiveFromBalance - amount : null
   const toAfter   = toAccount ? toAccount.balance + amount : null
+  const assetAfter = toAsset ? toAsset.value + amount : null
 
   function validate() {
     const e = {}
     if (!form.fromId) e.fromId = 'Requerido'
     if (!form.toId) e.toId = 'Requerido'
-    if (form.fromId && form.toId && form.fromId === form.toId) e.toId = 'Debe ser diferente'
+    if (destType === 'account' && form.fromId && form.toId && form.fromId === form.toId) e.toId = 'Debe ser diferente'
     if (!form.amount || isNaN(amount) || amount <= 0) e.amount = 'Monto inválido'
     if (fromAccount && amount > effectiveFromBalance) e.amount = `Saldo insuficiente (${fmt(effectiveFromBalance)})`
     if (!form.date) e.date = 'Requerido'
@@ -89,7 +105,19 @@ export default function TransferModal({ isOpen, onClose, transfer = null }) {
     e.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
-    if (transfer) {
+
+    if (destType === 'asset') {
+      dispatch({
+        type: 'TRANSFER_TO_ASSET',
+        payload: {
+          fromId:     Number(form.fromId),
+          toAssetId:  Number(form.toId),
+          amount,
+          date:       form.date,
+          note:       form.note,
+        },
+      })
+    } else if (transfer) {
       dispatch({
         type: 'UPDATE_TRANSFER',
         payload: {
@@ -134,6 +162,38 @@ export default function TransferModal({ isOpen, onClose, transfer = null }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+
+          {/* Destination type toggle (only for new transfers) */}
+          {!transfer && (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Tipo de destino</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => switchDestType('account')}
+                  className={`flex-1 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                    destType === 'account'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-blue-400'
+                  }`}
+                >
+                  Cuenta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchDestType('asset')}
+                  className={`flex-1 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                    destType === 'asset'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-blue-400'
+                  }`}
+                >
+                  Activo
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* From → To */}
           <div className="flex items-start gap-3">
             {/* From */}
@@ -161,26 +221,41 @@ export default function TransferModal({ isOpen, onClose, transfer = null }) {
             {/* To */}
             <div className="flex-1">
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Destino</label>
-              <select
-                value={form.toId}
-                onChange={e => set('toId', e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg border text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
-                  errors.toId ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <option value="">Cuenta...</option>
-                {state.accounts
-                  .filter(a => a.id !== Number(form.fromId))
-                  .map(a => (
+              {destType === 'account' ? (
+                <select
+                  value={form.toId}
+                  onChange={e => set('toId', e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
+                    errors.toId ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  <option value="">Cuenta...</option>
+                  {state.accounts
+                    .filter(a => a.id !== Number(form.fromId))
+                    .map(a => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                </select>
+              ) : (
+                <select
+                  value={form.toId}
+                  onChange={e => set('toId', e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
+                    errors.toId ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  <option value="">Activo...</option>
+                  {state.assets.map(a => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}
-              </select>
+                </select>
+              )}
               {errors.toId && <p className="text-xs text-red-500 mt-1">{errors.toId}</p>}
             </div>
           </div>
 
           {/* Balance preview */}
-          {(fromAccount || toAccount) && (
+          {(fromAccount || toAccount || toAsset) && (
             <div className="flex gap-3">
               {fromAccount && (
                 <div className="flex-1 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2.5">
@@ -205,6 +280,18 @@ export default function TransferModal({ isOpen, onClose, transfer = null }) {
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">{fmt(toAccount.balance)}</p>
                   {amount > 0 && (
                     <p className="text-xs text-gray-400 mt-0.5">→ {fmt(toAfter)}</p>
+                  )}
+                </div>
+              )}
+              {toAsset && (
+                <div className="flex-1 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: toAsset.color ?? '#3b82f6' }} />
+                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{toAsset.name}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{fmt(toAsset.value)}</p>
+                  {amount > 0 && (
+                    <p className="text-xs text-gray-400 mt-0.5">→ {fmt(assetAfter)}</p>
                   )}
                 </div>
               )}

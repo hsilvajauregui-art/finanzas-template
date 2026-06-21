@@ -374,6 +374,31 @@ function reducer(state, action) {
         }],
       }
     }
+    case 'TRANSFER_TO_ASSET':
+      return {
+        ...state,
+        accounts: state.accounts.map(a =>
+          a.id === action.payload.fromId
+            ? { ...a, balance: a.balance - action.payload.amount }
+            : a
+        ),
+        assets: state.assets.map(a =>
+          a.id === action.payload.toAssetId
+            ? { ...a, value: a.value + action.payload.amount }
+            : a
+        ),
+        transactions: [...state.transactions, {
+          id: Date.now(),
+          type: 'transfer',
+          category: 'Aportación a activo',
+          subcategory: '',
+          amount: action.payload.amount,
+          date: action.payload.date,
+          account: action.payload.fromId,
+          toAsset: action.payload.toAssetId,
+          note: action.payload.note || '',
+        }],
+      }
     case 'ADD_ASSET':
       return { ...state, assets: [...state.assets, { ...action.payload, id: Date.now() }] }
     case 'UPDATE_ASSET':
