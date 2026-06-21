@@ -8,6 +8,7 @@ import { AlertsProvider } from './context/AlertsContext'
 import { LicenseProvider, useLicense } from './context/LicenseContext'
 import UpgradeLock from './components/UpgradeLock'
 import Onboarding from './components/Onboarding'
+import { initNotifications } from './lib/notifications'
 import Layout from './components/Layout'
 import TransactionModal from './components/TransactionModal'
 import TransferModal from './components/TransferModal'
@@ -71,6 +72,11 @@ function AppContent({ currentPage, setCurrentPage, openNewTransaction, openEditT
   )
 
   const showOnboarding = !onboardingDone && state.accounts.length === 0
+
+  // Init notifications once on mount
+  useEffect(() => {
+    initNotifications(state.debts)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function completeOnboarding() {
     localStorage.setItem('finzen_onboarding_done', '1')

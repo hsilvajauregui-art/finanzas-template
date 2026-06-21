@@ -1,5 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
-import { Download, Upload, RotateCcw, FileJson, FileText, CheckCircle, XCircle, AlertTriangle, Smartphone, Info, Crown, KeyRound, ExternalLink, ShieldCheck, LogOut } from 'lucide-react'
+import { Download, Upload, RotateCcw, FileJson, FileText, CheckCircle, XCircle, AlertTriangle, Smartphone, Info, Crown, KeyRound, ExternalLink, ShieldCheck, LogOut, Bell, BellOff } from 'lucide-react'
+import {
+  requestNotificationPermission,
+  hasNotificationPermission,
+  scheduleDailyReminder,
+  cancelDailyReminder,
+  scheduleDebtReminders,
+  getNotifPrefs,
+  saveNotifPrefs,
+} from '../lib/notifications'
 import { useFinance } from '../context/FinanceContext'
 import { emptyState } from '../context/FinanceContext'
 import { useAppearance } from '../context/AppearanceContext'
@@ -137,6 +146,41 @@ export default function Settings() {
   const [isStandalone, setIsStandalone] = useState(false)
   const [licenseKeyInput, setLicenseKeyInput] = useState('')
   const [activateSuccess, setActivateSuccess] = useState(false)
+
+  // ── Notifications
+  const [notifPrefs, setNotifPrefs] = useState(getNotifPrefs)
+  const [notifPermission, setNotifPermission] = useState(false)
+  const [notifSaved, setNotifSaved] = useState(false)
+
+  useEffect(() => {
+    hasNotificationPermission().then(setNotifPermission)
+  }, [])
+
+  async function toggleNotifications(enabled) {
+    if (enabled) {
+      const granted = await requestNotificationPermission()
+      setNotifPermission(granted)
+      if (!granted) return
+    }
+    const updated = { ...notifPrefs, enabled }
+    setNotifPrefs(updated)
+    saveNotifPrefs(updated)
+    if (enabled) {
+      await scheduleDailyReminder(updated.hour, updated.minute)
+      await scheduleDebtReminders(state.debts)
+    } else {
+      await cancelDailyReminder()
+    }
+  }
+
+  async function saveNotifTime() {
+    saveNotifPrefs(notifPrefs)
+    if (notifPrefs.enabled) {
+      await scheduleDailyReminder(notifPrefs.hour, notifPrefs.minute)
+    }
+    setNotifSaved(true)
+    setTimeout(() => setNotifSaved(false), 2000)
+  }
 
   async function handleActivate() {
     setActivateSuccess(false)
@@ -516,6 +560,89 @@ export default function Settings() {
             </div>
           ))}
         </div>
+      </SectionCard>
+
+      {/* ── Notifications ── */}
+      <SectionCard title="Notificaciones" description="Recordatorios para mantener tus finanzas al día">
+        {/* Toggle */}
+        <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-3">
+            {notifPrefs.enabled
+              ? <Bell size={18} className="text-blue-500" strokeWidth={1.75} />
+              : <BellOff size={18} className="text-gray-400" strokeWidth={1.75} />}
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Recordatorio diario</p>
+              <p className="text-xs text-gray-400">¿Ya registraste tus gastos?</p>
+            </div>
+          </div>
+          <button
+            onClick={() => toggleNotifications(!notifPrefs.enabled)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              notifPrefs.enabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              notifPrefs.enabled ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
+
+        {/* Time picker */}
+        {notifPrefs.enabled && (
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Hora del recordatorio</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="time"
+                value={`${String(notifPrefs.hour).padStart(2,'0')}:${String(notifPrefs.minute).padStart(2,'0')}`}
+                onChange={e => {
+                  const [h, m] = e.target.value.split(':').map(Number)
+                  setNotifPrefs(p => ({ ...p, hour: h, minute: m }))
+                }}
+                className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={saveNotifTime}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+              >
+                {notifSaved ? '✓ Guardado' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Debt alerts toggle */}
+        <div className="px-6 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Alertas de deudas</p>
+            <p className="text-xs text-gray-400">Aviso 3 días antes de vencimientos</p>
+          </div>
+          <button
+            onClick={async () => {
+              const updated = { ...notifPrefs, debtAlerts: !notifPrefs.debtAlerts }
+              setNotifPrefs(updated)
+              saveNotifPrefs(updated)
+              if (updated.debtAlerts && updated.enabled) {
+                await scheduleDebtReminders(state.debts)
+              }
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              notifPrefs.debtAlerts && notifPrefs.enabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              notifPrefs.debtAlerts && notifPrefs.enabled ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
+
+        {!notifPermission && notifPrefs.enabled && (
+          <div className="px-6 pb-4">
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              ⚠️ Activa los permisos de notificación en la configuración de tu dispositivo para que funcionen.
+            </p>
+          </div>
+        )}
       </SectionCard>
 
       {/* Demo data note */}
