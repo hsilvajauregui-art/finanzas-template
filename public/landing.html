@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finzen — Control de finanzas personales</title>
+  <meta name="description" content="Lleva el control de tus cuentas, deudas, inversiones y metas en un solo lugar. Gratis. Sin anuncios." />
+  <meta property="og:title" content="Finzen — Control de finanzas personales" />
+  <meta property="og:description" content="Lleva el control de tus cuentas, deudas, inversiones y metas en un solo lugar." />
+  <meta property="og:image" content="https://finzen.dev/screenshots/dashboard.png" />
+  <meta property="og:url" content="https://finzen.dev" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple: #7c3aed;
+      --purple-light: #ede9fe;
+      --purple-dark: #5b21b6;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --bg: #ffffff;
+      --bg2: #f9fafb;
+      --border: #e5e7eb;
+      --radius: 16px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text: #f9fafb;
+        --text-muted: #9ca3af;
+        --bg: #0f0f1a;
+        --bg2: #1a1a2e;
+        --border: #1f2937;
+        --purple-light: #1e1040;
+      }
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 60px;
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .nav-logo img {
+      width: 28px;
+      height: 28px;
+    }
+
+    .nav-cta {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 20px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all .15s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+    }
+    .btn-ghost:hover { color: var(--text); }
+
+    .btn-primary {
+      background: var(--purple);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--purple-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(124,58,237,.35); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--purple);
+      border: 1.5px solid var(--purple);
+    }
+    .btn-outline:hover { background: var(--purple-light); }
+
+    .btn-lg {
+      padding: 14px 28px;
+      font-size: 1rem;
+      border-radius: 12px;
+    }
+
+    /* HERO */
+    .hero {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px 60px;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: var(--purple-light);
+      color: var(--purple);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      max-width: 700px;
+      margin: 0 auto 20px;
+    }
+
+    h1 span { color: var(--purple); }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 36px;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .hero-note {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* SCREENSHOT */
+    .screenshot-wrap {
+      max-width: 900px;
+      margin: 52px auto 0;
+      padding: 0 24px;
+      position: relative;
+    }
+
+    .screenshot-wrap::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse at center, rgba(124,58,237,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .screenshot-main {
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 64px rgba(0,0,0,.12);
+      display: block;
+    }
+
+    /* LOGOS */
+    .trust {
+      text-align: center;
+      padding: 48px 24px 0;
+    }
+    .trust p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 20px;
+    }
+    .trust-logos {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .trust-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .trust-logo svg { opacity: .6; }
+
+    /* FEATURES */
+    .section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--purple);
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 48px;
+      max-width: 560px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--purple-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 1.3rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .feature-card p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* SCREENSHOT 2 */
+    .split {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    @media (max-width: 700px) {
+      .split { grid-template-columns: 1fr; }
+      .split .split-img { order: -1; }
+    }
+
+    .split-img img {
+      width: 100%;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 12px 40px rgba(0,0,0,.1);
+    }
+
+    .split-text .section-label { margin-bottom: 10px; }
+    .split-text h2 { margin-bottom: 16px; font-size: clamp(1.4rem, 2.5vw, 2rem); }
+    .split-text p { color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem; }
+
+    .check-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .check-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .check-list li::before {
+      content: '✓';
+      color: var(--purple);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* PRICING */
+    .pricing-section {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 600px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+
+    .plan-card {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    .plan-card.featured {
+      border-color: var(--purple);
+      position: relative;
+    }
+
+    .plan-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--purple);
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .plan-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+
+    .plan-price {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .plan-price span {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .plan-period {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .plan-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      margin-bottom: 24px;
+    }
+
+    .plan-features li {
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+    }
+
+    .plan-features li.active { color: var(--text); }
+
+    .plan-features li::before {
+      content: '—';
+      color: var(--border);
+      flex-shrink: 0;
+    }
+
+    .plan-features li.active::before {
+      content: '✓';
+      color: var(--purple);
+      font-weight: 700;
+    }
+
+    /* CTA */
+    .cta-section {
+      text-align: center;
+      padding: 80px 24px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .cta-section h2 {
+      max-width: 100%;
+      margin: 0 auto 16px;
+      text-align: center;
+    }
+
+    .cta-section p {
+      color: var(--text-muted);
+      margin-bottom: 36px;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 24px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    /* Play Store badge */
+    .play-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #000;
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      padding: 10px 18px;
+      transition: opacity .15s;
+    }
+    .play-badge:hover { opacity: .85; }
+    .play-badge .badge-text { text-align: left; }
+    .play-badge .badge-sub { font-size: 0.65rem; opacity: .8; display: block; }
+    .play-badge .badge-name { font-size: 0.95rem; font-weight: 600; display: block; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="/icon.svg" alt="Finzen" />
+    Finzen
+  </a>
+  <div class="nav-cta">
+    <a href="/#pricing" class="btn btn-ghost">Precios</a>
+    <a href="/" class="btn btn-primary">Abrir app →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="badge">
+    ✦ Disponible gratis · Sin anuncios
+  </div>
+  <h1>Tus finanzas personales, <span>bajo control</span></h1>
+  <p class="hero-sub">
+    Registra ingresos, gastos, deudas e inversiones. Visualiza tu patrimonio neto y alcanza tus metas financieras.
+  </p>
+  <div class="hero-btns">
+    <a href="/" class="btn btn-primary btn-lg">Empezar gratis →</a>
+    <a href="https://play.google.com/store/apps/details?id=dev.finzen.twa" target="_blank" rel="noopener" class="play-badge">
+      <svg width="22" height="24" viewBox="0 0 22 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0.432 0.346C0.162 0.63 0 1.07 0 1.638V22.362C0 22.93 0.162 23.37 0.432 23.654L0.504 23.724L11.628 12.6V12.35L0.504 1.276L0.432 0.346Z" fill="url(#g1)"/>
+        <path d="M15.358 16.334L11.628 12.6V12.35L15.36 8.618L15.45 8.67L19.872 11.172C21.126 11.88 21.126 13.02 19.872 13.734L15.452 16.236L15.358 16.334Z" fill="url(#g2)"/>
+        <path d="M15.452 16.236L11.628 12.35L0.432 23.654C0.84 24.09 1.518 24.138 2.286 23.706L15.452 16.236Z" fill="url(#g3)"/>
+        <path d="M15.452 8.67L2.286 1.2C1.518 0.774 0.84 0.822 0.432 1.258L11.628 12.35L15.452 8.67Z" fill="url(#g4)"/>
+        <defs>
+          <linearGradient id="g1" x1="10.566" y1="1.372" x2="-4.518" y2="16.548" gradientUnits="userSpaceOnUse"><stop stop-color="#00A0FF"/><stop offset="1" stop-color="#00C4FF"/></linearGradient>
+          <linearGradient id="g2" x1="21.6" y1="12.35" x2="-0.19" y2="12.35" gradientUnits="userSpaceOnUse"><stop stop-color="#FFD800"/><stop offset="1" stop-color="#FF8A00"/></linearGradient>
+          <linearGradient id="g3" x1="13.278" y1="14.518" x2="-6.81" y2="34.698" gradientUnits="userSpaceOnUse"><stop stop-color="#FF3A44"/><stop offset="1" stop-color="#C31162"/></linearGradient>
+          <linearGradient id="g4" x1="-2.106" y1="-5.07" x2="6.942" y2="4.032" gradientUnits="userSpaceOnUse"><stop stop-color="#32A071"/><stop offset="1" stop-color="#2DA771"/></linearGradient>
+        </defs>
+      </svg>
+      <div class="badge-text">
+        <span class="badge-sub">Disponible en</span>
+        <span class="badge-name">Google Play</span>
+      </div>
+    </a>
+  </div>
+  <p class="hero-note">Gratis para siempre · Plan Pro disponible</p>
+</div>
+
+<!-- MAIN SCREENSHOT -->
+<div class="screenshot-wrap">
+  <img src="/screenshots/dashboard.png" alt="Dashboard de Finzen" class="screenshot-main" />
+</div>
+
+<!-- TRUST -->
+<div class="trust">
+  <p>Diseñado para usuarios de</p>
+  <div class="trust-logos">
+    <div class="trust-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      Bancos digitales
+    </div>
+    <div class="trust-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h18v18H3z"/><path d="M8 12h8M12 8v8"/></svg>
+      Inversiones
+    </div>
+    <div class="trust-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Metas a largo plazo
+    </div>
+    <div class="trust-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="2"/></svg>
+      Deudas y créditos
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="section">
+  <p class="section-label">Funciones</p>
+  <h2>Todo lo que necesitas para controlar tu dinero</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Dashboard en tiempo real</h3>
+      <p>Visualiza tu situación financiera de un vistazo: saldo total, ingresos, gastos y flujo del mes.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏦</div>
+      <h3>Múltiples cuentas</h3>
+      <p>Agrega cuentas de débito, crédito, efectivo, ahorro y billeteras digitales. Todo en un solo lugar.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📈</div>
+      <h3>Patrimonio neto</h3>
+      <p>Registra activos como inversiones, propiedades y vehículos. Conoce tu patrimonio neto real.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💳</div>
+      <h3>Control de deudas</h3>
+      <p>Monitorea préstamos, tarjetas y créditos. Ve cuánto debes, cuándo pagar y cuánto pagas de interés.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>Metas de ahorro</h3>
+      <p>Define una meta, establece un plazo y Finzen te muestra cuánto llevas y cuánto te falta.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📉</div>
+      <h3>Análisis de gastos</h3>
+      <p>Desglose visual por categoría, comparativas entre meses y tendencias para entender en qué gastas más.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SPLIT SCREENSHOT -->
+<div class="split">
+  <div class="split-text">
+    <p class="section-label">Análisis</p>
+    <h2>Entiende tus patrones de gasto</h2>
+    <p>Gráficas claras que te muestran en qué categorías gastas más, cómo evolucionas mes a mes y dónde puedes mejorar.</p>
+    <ul class="check-list">
+      <li>Desglose por categoría con gráfica de pastel</li>
+      <li>Comparativa mensual de ingresos vs gastos</li>
+      <li>Tendencias por subcategoría</li>
+      <li>Historial completo con filtros</li>
+    </ul>
+  </div>
+  <div class="split-img">
+    <img src="/screenshots/analisis.png" alt="Análisis de Finzen" />
+  </div>
+</div>
+
+<!-- PRICING -->
+<div class="pricing-section" id="pricing">
+  <div class="section">
+    <p class="section-label">Precios</p>
+    <h2>Simple y transparente</h2>
+    <div class="pricing-grid">
+      <!-- Free -->
+      <div class="plan-card">
+        <p class="plan-name">Free</p>
+        <p class="plan-price">$0 <span>MXN</span></p>
+        <p class="plan-period">Para siempre</p>
+        <ul class="plan-features">
+          <li class="active">Hasta 2 cuentas</li>
+          <li class="active">Transacciones ilimitadas</li>
+          <li class="active">Historial 30 días</li>
+          <li class="active">Metas de ahorro</li>
+          <li>Patrimonio y activos</li>
+          <li>Control de deudas</li>
+          <li>Análisis avanzado</li>
+          <li>Exportar datos</li>
+        </ul>
+        <a href="/" class="btn btn-outline" style="width:100%;justify-content:center;">Empezar gratis</a>
+      </div>
+      <!-- Pro -->
+      <div class="plan-card featured">
+        <div class="plan-badge">Más popular</div>
+        <p class="plan-name">Pro</p>
+        <p class="plan-price">$69 <span>MXN/mes</span></p>
+        <p class="plan-period">o $599 MXN/año — ahorra 28%</p>
+        <ul class="plan-features">
+          <li class="active">Cuentas ilimitadas</li>
+          <li class="active">Transacciones ilimitadas</li>
+          <li class="active">Historial completo</li>
+          <li class="active">Metas de ahorro</li>
+          <li class="active">Patrimonio y activos</li>
+          <li class="active">Control de deudas</li>
+          <li class="active">Análisis avanzado</li>
+          <li class="active">Exportar datos CSV/JSON</li>
+        </ul>
+        <a href="/" class="btn btn-primary" style="width:100%;justify-content:center;">Probar Pro →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA FINAL -->
+<div class="cta-section">
+  <h2>Empieza a controlar tu dinero hoy</h2>
+  <p>Sin tarjeta de crédito. Sin anuncios. Sin excusas.</p>
+  <div class="hero-btns">
+    <a href="/" class="btn btn-primary btn-lg">Crear cuenta gratis →</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span>© 2026 Finzen</span>
+  <a href="/privacy.html">Política de privacidad</a>
+  <a href="mailto:hola@finzen.dev">hola@finzen.dev</a>
+</footer>
+
+</body>
+</html>
